@@ -93,6 +93,7 @@ typical meeting hours, typical projects per person, and how many sprints of hist
 ```bash
 npm test              # unit tests (Node 18+, no install needed)
 npm run package       # builds dist/extension.zip
+npm run build:demo    # builds dist/capacity-forecast-demo.html, a single-file demo that opens offline
 python3 -m http.server  # then open http://localhost:8000/demo/demo.html
 ```
 
