@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Behavioural Capacity Forecasting",
+  "version": "0.1.0",
+  "description": "Forecast what your team can really deliver next sprint, adjusted for meetings, leave, context switching and unplanned work.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://*.atlassian.net/*"],
+  "action": {
+    "default_title": "Capacity forecast",
+    "default_popup": "pages/popup.html"
+  },
+  "options_page": "pages/options.html",
+  "content_scripts": [
+    {
+      "matches": ["https://*.atlassian.net/*"],
+      "js": ["src/content/loader.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/*"],
+      "matches": ["https://*.atlassian.net/*"]
+    }
+  ]
+}
