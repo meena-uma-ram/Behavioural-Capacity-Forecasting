@@ -24,7 +24,14 @@ jobs:
           name: extension
           path: dist/extension.zip
       - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/v')
+        # A new version in manifest.json on main (or a pushed v* tag) publishes a release once.
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/extension.zip --title "$GITHUB_REF_NAME" --generate-notes
+        run: |
+          version="v$(node -p "require('./manifest.json').version")"
+          if gh release view "$version" >/dev/null 2>&1; then
+            echo "Release $version already exists"
+          else
+            gh release create "$version" dist/extension.zip --target "$GITHUB_SHA" --title "$version" --generate-notes
+          fi

@@ -107,7 +107,7 @@ demo/                  standalone demo with sample data
 tests/                 node:test unit tests
 ```
 
-Releases: push a tag such as `v0.1.0` and GitHub Actions attaches `extension.zip` to a release.
+Releases: bump `version` in `manifest.json` and `package.json` and merge to `main`. GitHub Actions publishes a release for that version with `extension.zip` attached.
 
 ## Roadmap
 
