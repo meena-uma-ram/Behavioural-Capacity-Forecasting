@@ -2,18 +2,7 @@
 // Built with DOM APIs (no innerHTML) so Jira data can never inject markup.
 
 import { forecastSprint, memberCapacityFactor, pct, RAMP_FACTORS } from '../engine/forecast.js';
-
-function h(tag, attrs = {}, ...children) {
-  const el = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    if (v == null || v === false) continue;
-    if (k.startsWith('on')) el.addEventListener(k.slice(2).toLowerCase(), v);
-    else if (k === 'class') el.className = v;
-    else el.setAttribute(k, v === true ? '' : v);
-  }
-  for (const c of children.flat()) if (c != null) el.append(c instanceof Node ? c : String(c));
-  return el;
-}
+import { h } from './dom.js';
 
 const RAMP_LABELS = { none: 'Normal', returning: 'Back from leave', newJoiner: 'New joiner' };
 
@@ -38,10 +27,7 @@ export function renderPanel(container, state) {
   };
 
   container.replaceChildren(
-    h('header', { class: 'bcf-header' },
-      h('h2', {}, 'Capacity forecast'),
-      state.sprintName ? h('p', { class: 'bcf-sub' }, state.sprintName) : null,
-    ),
+    state.sprintName ? h('p', { class: 'bcf-sub' }, state.sprintName) : null,
     forecastSlot,
     teamView(state, refresh),
     footer,

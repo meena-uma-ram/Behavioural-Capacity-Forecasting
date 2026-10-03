@@ -1,9 +1,20 @@
 // Adds a "Capacity forecast" button to Jira board and backlog pages.
 
 import { DEFAULT_SETTINGS } from '../engine/forecast.js';
-import { boardIdFromUrl, getEstimationField, getPlannedSprint, getSprintHistory } from '../jira/client.js';
+import { PORTFOLIO_DEFAULTS } from '../engine/portfolio.js';
+import {
+  boardIdFromUrl,
+  getBoardProjectKey,
+  getEstimationField,
+  getPlannedSprint,
+  getPortfolioData,
+  getSprintHistory,
+  listProjects,
+} from '../jira/client.js';
 import { renderPanel } from '../ui/panel.js';
-import { loadSettings, loadMembers, saveMembers } from '../storage.js';
+import { renderPortfolio } from '../ui/portfolio.js';
+import { renderTabs } from '../ui/tabs.js';
+import { loadMembers, loadPortfolioPrefs, loadSettings, saveMembers, savePortfolioPrefs } from '../storage.js';
 
 let ui = null;
 
@@ -26,7 +37,7 @@ function mount() {
 
   toggle.addEventListener('click', () => {
     panel.hidden = !panel.hidden;
-    if (!panel.hidden) load(panel);
+    if (!panel.hidden) open(panel);
   });
 
   shadow.append(style, toggle, panel);
@@ -34,11 +45,17 @@ function mount() {
   return { host, panel };
 }
 
-async function load(panel) {
+function open(panel) {
   const boardId = boardIdFromUrl(location.href);
   if (!boardId) return;
-  panel.textContent = 'Reading sprint history…';
+  renderTabs(panel, [
+    { id: 'sprint', label: 'This sprint', render: (el) => loadSprint(el, boardId) },
+    { id: 'projects', label: 'Projects', render: (el) => loadProjects(el, boardId) },
+  ], { onChange: (id) => panel.classList.toggle('bcf-wide', id === 'projects') });
+}
 
+async function loadSprint(el, boardId) {
+  el.textContent = 'Reading sprint history…';
   try {
     const settings = { ...DEFAULT_SETTINGS, ...(await loadSettings()) };
     const field = await getEstimationField(boardId);
@@ -51,7 +68,7 @@ async function load(panel) {
     const saved = planned ? await loadMembers(boardId, planned.id) : [];
     const members = (planned?.assignees || []).map((name) => saved.find((m) => m.name === name) || { name });
 
-    renderPanel(panel, {
+    renderPanel(el, {
       sprintName: planned ? `${planned.name} (${planned.state})` : 'No active or future sprint',
       history,
       plannedPoints: planned?.points ?? null,
@@ -60,7 +77,29 @@ async function load(panel) {
       onMembersChange: (m) => planned && saveMembers(boardId, planned.id, m),
     });
   } catch (err) {
-    panel.textContent = `Could not read this board: ${err.message}`;
+    el.textContent = `Could not read this board: ${err.message}`;
+  }
+}
+
+async function loadProjects(el, boardId) {
+  el.textContent = 'Reading projects…';
+  try {
+    const settings = { ...PORTFOLIO_DEFAULTS, ...(await loadSettings()) };
+    const [field, allProjects, boardProject, saved] = await Promise.all([
+      getEstimationField(boardId),
+      listProjects(),
+      getBoardProjectKey(boardId).catch(() => null),
+      loadPortfolioPrefs(),
+    ]);
+    renderPortfolio(el, {
+      allProjects,
+      prefs: saved || { selected: boardProject ? [boardProject] : [] },
+      settings,
+      loadData: (keys, s) => getPortfolioData(keys, field, s),
+      onPrefsChange: savePortfolioPrefs,
+    });
+  } catch (err) {
+    el.textContent = `Could not read projects: ${err.message}`;
   }
 }
 

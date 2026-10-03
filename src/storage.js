@@ -19,3 +19,14 @@ export async function saveMembers(boardId, sprintId, members) {
   const key = `members:${location.host}:${boardId}:${sprintId}`;
   await chrome.storage.local.set({ [key]: members });
 }
+
+// Projects tab: selected projects, horizon and colour slots, per Jira site.
+export async function loadPortfolioPrefs() {
+  const key = `portfolio:${location.host}`;
+  const stored = await chrome.storage.local.get(key);
+  return stored[key] || null;
+}
+
+export async function savePortfolioPrefs(prefs) {
+  await chrome.storage.local.set({ [`portfolio:${location.host}`]: prefs });
+}

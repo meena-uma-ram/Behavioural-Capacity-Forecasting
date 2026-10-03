@@ -25,3 +25,20 @@ test('converts a sprint report into committed, completed and unplanned points', 
   };
   assert.deepEqual(sprintFromReport(report), { name: 'Sprint 5', committed: 15, completed: 8, completedAdded: 3 });
 });
+
+import { issueToTask, portfolioJql } from '../src/jira/client.js';
+
+test('builds portfolio JQL for the selected projects', () => {
+  const q = portfolioJql(['APP', 'PAY'], { historyWeeks: 12, horizonWeeks: 6 });
+  assert.match(q.completed, /project in \("APP","PAY"\)/);
+  assert.match(q.completed, /resolved >= -12w/);
+  assert.match(q.open, /duedate <= 6w/);
+  assert.match(q.open, /ORDER BY duedate ASC, Rank ASC$/);
+});
+
+test('maps Jira issues to tasks, keeping missing estimates as null', () => {
+  const issue = { key: 'APP-1', fields: { summary: 'Login', project: { key: 'APP' }, assignee: { displayName: 'Ben' }, status: { name: 'To Do' }, duedate: '2026-10-10', customfield_1: 5 } };
+  assert.deepEqual(issueToTask(issue, 'customfield_1'), { key: 'APP-1', summary: 'Login', project: 'APP', assignee: 'Ben', points: 5, status: 'To Do', due: '2026-10-10' });
+  assert.equal(issueToTask({ key: 'X-1', fields: {} }, 'customfield_1').points, null);
+  assert.equal(issueToTask({ key: 'X-1', fields: {} }, 'customfield_1').assignee, null);
+});

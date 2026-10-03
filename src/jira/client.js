@@ -89,3 +89,69 @@ export async function getPlannedSprint(boardId, estimationField) {
   }
   return { id: sprint.id, name: sprint.name, state: sprint.state, points, assignees: [...assignees.values()].sort() };
 }
+
+// --- cross-project (portfolio) data ---
+
+/** The project a board belongs to, used as the default selection. */
+export async function getBoardProjectKey(boardId) {
+  const board = await getJson(`/rest/agile/1.0/board/${boardId}`);
+  return board.location?.projectKey || null;
+}
+
+/** All projects the user can see, sorted by name. */
+export async function listProjects() {
+  const projects = await getAllPages('/rest/api/3/project/search');
+  return projects.map((p) => ({ key: p.key, name: p.name })).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** Run a JQL search with the enhanced search API, following page tokens. */
+async function searchJql(jql, fields, limit = 2000) {
+  const out = [];
+  let token = null;
+  do {
+    const params = new URLSearchParams({ jql, fields: fields.join(','), maxResults: '100' });
+    if (token) params.set('nextPageToken', token);
+    const page = await getJson(`/rest/api/3/search/jql?${params}`);
+    out.push(...(page.issues || []));
+    token = page.isLast ? null : page.nextPageToken;
+  } while (token && out.length < limit);
+  return out;
+}
+
+const quoteKeys = (keys) => keys.map((k) => `"${k.replace(/"/g, '')}"`).join(',');
+
+export function portfolioJql(projectKeys, { historyWeeks, horizonWeeks }) {
+  const scope = `project in (${quoteKeys(projectKeys)}) AND issuetype not in subTaskIssueTypes()`;
+  return {
+    completed: `${scope} AND statusCategory = Done AND resolved >= -${historyWeeks}w AND assignee is not EMPTY`,
+    // Upcoming work: anything in a current or future sprint, already started, or due within the horizon.
+    open:
+      `${scope} AND statusCategory != Done AND (sprint in openSprints() OR sprint in futureSprints() ` +
+      `OR statusCategory = "In Progress" OR duedate <= ${horizonWeeks}w) ORDER BY duedate ASC, Rank ASC`,
+  };
+}
+
+/** Convert a Jira issue into the portfolio engine's shape. */
+export function issueToTask(issue, estimationField) {
+  const f = issue.fields || {};
+  const raw = estimationField ? f[estimationField] : null;
+  return {
+    key: issue.key,
+    summary: f.summary || '',
+    project: f.project?.key,
+    assignee: f.assignee?.displayName || null,
+    points: raw == null || raw === '' ? null : Number(raw),
+    status: f.status?.name || '',
+    due: f.duedate || null,
+  };
+}
+
+export async function getPortfolioData(projectKeys, estimationField, settings) {
+  const jql = portfolioJql(projectKeys, settings);
+  const fields = ['summary', 'project', 'assignee', 'status', 'duedate', estimationField].filter(Boolean);
+  const [completed, open] = await Promise.all([searchJql(jql.completed, fields), searchJql(jql.open, fields)]);
+  return {
+    completed: completed.map((i) => issueToTask(i, estimationField)),
+    open: open.map((i) => issueToTask(i, estimationField)),
+  };
+}

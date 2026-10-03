@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Behavioural Capacity Forecasting",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Forecast what your team can really deliver next sprint, adjusted for meetings, leave, context switching and unplanned work.",
   "permissions": ["storage"],
   "host_permissions": ["https://*.atlassian.net/*"],
