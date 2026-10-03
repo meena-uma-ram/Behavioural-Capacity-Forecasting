@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Capacity Forecast Demo</title>
+  <link rel="stylesheet" href="../src/ui/panel.css">
+  <style>
+    html, body { margin: 0; background: #f1f2f4; }
+    @media (prefers-color-scheme: dark) { html, body { background: #161a1d; } }
+    .bcf-root { display: block; max-width: 800px; margin: 24px auto; padding: 0 16px; }
+    .bcf-root .bcf-panel { position: static; width: auto; max-height: none; }
+    .demo-note { font-size: 12px; color: var(--bcf-muted); margin: 0 0 8px; }
+  </style>
+</head>
+<body>
+  <div class="bcf-root">
+    <p class="demo-note">Demo with sample data. Switch tabs, change the team inputs, and hover the bars.</p>
+    <div class="bcf-panel" id="panel"></div>
+  </div>
+  <script type="module" src="demo.js"></script>
+</body>
+</html>
